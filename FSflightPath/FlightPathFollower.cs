@@ -7,18 +7,19 @@ using UnityEngine;
 
 namespace FSflightPath
 {
-    class FlightPathFollower : MonoBehaviour
+    public class FlightPathFollower : MonoBehaviour
     {
         public FlightPath path;
         public bool playback = false;
         public float countDown = 0f;
         public float progress = 0f;
-        //public int currentNodeNumber = 0;
-
+        public Rigidbody rbody;
+        public Collider collider;
         public void goOffRails(Vector3 angularVelocity)
         {
-            rigidbody.isKinematic = false;
             playback = false;
+            if (rigidbody == null) return;
+            rigidbody.isKinematic = false;            
             if (path.nodes.Count > 0)
                 rigidbody.velocity = Vector3.Lerp(path.nextNode.velocity, path.currentNode.velocity, progress);
             rigidbody.angularVelocity = angularVelocity;
@@ -26,13 +27,19 @@ namespace FSflightPath
 
         public void startPlayback()
         {
+            if (rigidbody == null) return;
             if (path.nodes.Count <= 0) return;
             rigidbody.isKinematic = true;
             playback = true;
             path.currentNodeNumber = 0;
             countDown = path.nextNode.time;
-            transform.position = path.currentNode.position;
+            transform.position = path.currentNode.position + FlightGlobals.ActiveVessel.mainBody.position;
             transform.rotation = path.currentNode.rotation;
+            if (collider != null)
+            {
+                Debug.Log("found collider");
+                collider.isTrigger = false;
+            }
         }
 
         // Use this for initialization
@@ -67,7 +74,7 @@ namespace FSflightPath
                 }
                 progress = countDown / path.nextNode.time;
                 //Debug.Log("cur " + path.currentNodeNumber + " / " + progress);
-                transform.position = Vector3.Lerp(path.nextNode.position, path.currentNode.position, progress);
+                transform.position = Vector3.Lerp(path.nextNode.position + FlightGlobals.ActiveVessel.mainBody.position, path.currentNode.position + FlightGlobals.ActiveVessel.mainBody.position, progress);
                 transform.rotation = Quaternion.Lerp(path.nextNode.rotation, path.currentNode.rotation, progress);
             }
         }

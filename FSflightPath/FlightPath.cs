@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace FSflightPath
 {
-    class FlightPath : MonoBehaviour
+    public class FlightPath
     {
         public string pathName = string.Empty;
         public List<FlightPathNode> nodes = new List<FlightPathNode>();

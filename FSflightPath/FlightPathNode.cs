@@ -9,7 +9,7 @@ namespace FSflightPath
 {
     public class FlightPathNode
     {
-        public Vector3 position;
+        public Vector3d position;
         public Quaternion rotation;
         public Vector3 velocity;
         public float time;

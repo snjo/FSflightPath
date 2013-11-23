@@ -7,9 +7,10 @@ using UnityEngine;
 
 namespace FSflightPath
 {
-    class FlightPathRecorder : MonoBehaviour
+    public class FlightPathRecorder : MonoBehaviour
     {
-
+        [KSPField]
+        public string ID = "generic";
         public FlightPath path;
         public bool recording = false;
         public Rigidbody rbody;
@@ -55,15 +56,15 @@ namespace FSflightPath
         public void addCurrentNode()
         {
             path.nodes.Add(new FlightPathNode(newNode));
-            Instantiate(pathMarker, newNode.position, newNode.rotation);
+            //Instantiate(pathMarker, newNode.position, newNode.rotation);
             timeElapsed = 0f;
-            //Debug.Log("add node");
+            Debug.Log("add node");
         }
 
         public void startRecording()
         {
             Debug.Log("Starting recording");
-            //timeElapsed = 0f;
+            rbody = FlightGlobals.ActiveVessel.rigidbody;
             recording = true;
         }
 
@@ -73,7 +74,7 @@ namespace FSflightPath
             recording = false;
             if (path.nodes.Count > 0)
             {
-                float loopDistance = Vector3.Distance(path.nodes[0].position, path.lastNode.position);
+                float loopDistance = (float)Vector3d.Distance(path.nodes[0].position, path.lastNode.position);
                 float timeUsed = loopDistance / path.lastNode.speed;
                 Debug.Log("timeToLoop: " + timeUsed);
                 path.nodes[0].time = timeUsed;
@@ -92,14 +93,14 @@ namespace FSflightPath
         private void updateNewNode()
         {
             timeElapsed += Time.deltaTime;
-            newNode.position = rbody.position;
+            newNode.position = rbody.position - FlightGlobals.ActiveVessel.mainBody.position;
             newNode.rotation = rbody.rotation;
             newNode.velocity = rbody.velocity;
             newNode.time = timeElapsed;
         }
 
         // Update is called once per frame
-        void FixedUpdate()
+        public void FixedUpdate()
         {
 
             if (recording)
@@ -134,5 +135,6 @@ namespace FSflightPath
                 stopRecording();
             }
         }
+        
     }
 }
