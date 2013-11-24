@@ -57,7 +57,7 @@ namespace FSflightPath
             }
             if (Input.GetKeyDown(KeyCode.L))
             {
-                goOffRails(new Vector3(0.1f, 1f, 0.5f));
+                goOffRails(Vector3.zero);
             }
         }
 

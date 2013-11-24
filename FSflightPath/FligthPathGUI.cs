@@ -13,10 +13,18 @@ namespace FSflightPath
         public FlightPathRecorder recorder = new FlightPathRecorder();
         public FlightPathFollower follower = new FlightPathFollower();
         public Rect windowRect = new Rect(100f, 10f, 200f, 180f);
+        public Vector2 buttonSize = new Vector2(90f, 20f);
+        public Vector2 margin = new Vector2(10f, 5f);
+        public float topMargin = 20f;
+        private int elementCount = 0;
+        private Vector2 windowSize = Vector2.zero;
+        private Vector2 currentElementPos = Vector2.zero;
         public int GUIlayer = 2;
         string status = "Standby";
         public GameObject pathHolder;
         public FlightPath path = new FlightPath();
+        public bool showMenu = true;
+        private float hideMenuHintCountDown = 0f;
 
         public string meshName = "FSflightPath/models/targetPlane";
         public GameObject model;
@@ -52,6 +60,28 @@ namespace FSflightPath
             //db.debugMessage("FS: part pos == " + part.transform.position);
         }
 
+        private void newLine()
+        {
+            currentElementPos.y += buttonSize.y + margin.y;
+            elementCount++;
+        }
+        private void newColumn()
+        {
+            currentElementPos = new Vector2(currentElementPos.x + buttonSize.x + margin.x, topMargin);
+            elementCount = 0;
+        }
+        private Rect nextGUIpos
+        {
+            get
+            {
+                if (elementCount > 0)
+                    currentElementPos.y += margin.y + buttonSize.y;
+                else
+                    elementCount++;
+                return new Rect(currentElementPos.x, currentElementPos.y, buttonSize.x, buttonSize.y);
+            }
+        }
+
         public void Start()
         {
             pathHolder = new GameObject("pathHolder");
@@ -59,52 +89,69 @@ namespace FSflightPath
         }
 
         private void drawWindow(int windowID)
-        {
-            if (GUI.Button(new Rect(5f, 20f, 60f, 17f), "Record")) recorder.startRecording();
-            if (GUI.Button(new Rect(5f, 50f, 60f, 17f), "Stop")) recorder.stopRecording();
-            if (GUI.Button(new Rect(5f, 80f, 60f, 17f), "Clear"))
+        {            
+            currentElementPos = new Vector2(margin.x, topMargin);
+            elementCount = 0;
+            if (GUI.Button(nextGUIpos, "Record")) recorder.startRecording();
+            if (GUI.Button(nextGUIpos, "Stop")) recorder.stopRecording();
+            if (GUI.Button(nextGUIpos, "Clear"))
             {                
                 recorder.clearPath();
                 follower.goOffRails(Vector3.zero);
             }
-            if (GUI.Button(new Rect(70f, 20f, 60f, 17f), "Play")) follower.startPlayback();
-            if (GUI.Button(new Rect(70f, 50f, 60f, 17f), "OffRails")) follower.goOffRails(new Vector3(0f, 0.1f, 0f));
-            if (GUI.Button(new Rect(70f, 80f, 60f, 17f), "Create Model"))
+            if (GUI.Button(nextGUIpos, "Add node")) recorder.addCurrentNode();
+
+            newColumn();
+            if (GUI.Button(nextGUIpos, "Play"))
+            {
+                if (follower.rbody == null) createModel(meshName);
+                follower.startPlayback();                
+            }
+            if (GUI.Button(nextGUIpos, "OffRails")) follower.goOffRails(Vector3.zero);
+            if (GUI.Button(nextGUIpos, "Create Model"))
             {
                 Debug.Log("Create Model pressed");
                 if (follower.rbody == null)
                     createModel(meshName);
             }
-            
-            GUI.Label(new Rect(5f, 110f, 180f, 20f), "Nodes: " + path.nodes.Count);
+            GUI.Label(nextGUIpos, "Nodes: " + path.nodes.Count);
 
-            //if (recorder.rbody != null)
-            //{
-            //    GUI.Label(new Rect(5f, 110f, 300f, 20f), "RL: " + recorder.rbody.position);
-            //    GUI.Label(new Rect(5f, 130f, 300f, 20f), "RG: " + (recorder.rbody.position - FlightGlobals.ActiveVessel.mainBody.transform.position));
-            //}
-            //if (follower.rbody != null)
-            //{
-            //    GUI.Label(new Rect(5f, 140f, 300f, 20f), "FG: " + (follower.rbody.position - FlightGlobals.ActiveVessel.mainBody.transform.position));
-            //}
+            windowSize = currentElementPos + buttonSize + margin;            
+
+            if (GUI.Button(new Rect(windowRect.width - 18f, 2f, 16f, 16f), ""))
+            {
+                showMenu = false;
+                hideMenuHintCountDown = 4f;
+            }
+
+
             GUI.DragWindow();
         }
 
         void OnGUI()
         {
-            if (recorder.recording) status = "REC";
-            else status = "Standby";
-            windowRect = GUI.Window(GUIlayer, windowRect, drawWindow, recorder.ID + " Path Recorder: " + status);
+            if (showMenu)
+            {
+                if (recorder.recording) status = "REC";
+                else status = "Standby";
+                windowRect = GUI.Window(GUIlayer, new Rect(windowRect.x, windowRect.y, windowSize.x, windowSize.y + 2f), drawWindow, recorder.ID + " Path Recorder: " + status);
+            }
+            else if (hideMenuHintCountDown > 0f)
+            {
+                GUI.Label(new Rect(windowRect.x, windowRect.y, buttonSize.x*3, buttonSize.y*2), "Press F12 to enable path menu");
+            }
         }
 
         public void FixedUpdate()
         {
             recorder.FixedUpdate();
+            if (hideMenuHintCountDown > 0f) hideMenuHintCountDown -= Time.deltaTime;
         }
 
         public void Update()
         {
-            
+            if (Input.GetKeyDown(KeyCode.F12) && !(Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)))
+                showMenu = !showMenu;
         }
     }
 }
