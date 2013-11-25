@@ -15,7 +15,7 @@ namespace FSflightPath
         public bool recording = false;
         public Rigidbody rbody;
         private FlightPathNode newNode = new FlightPathNode();
-        private int currentNodeNumber = 0;
+        //private int currentNodeNumber = 0;
         public GameObject pathMarker;
         public float timeElapsed = 0f;
         // Use this for initialization
@@ -102,7 +102,7 @@ namespace FSflightPath
         // Update is called once per frame
         public void FixedUpdate()
         {
-
+            //Debug.Log("rec FU " + Time.deltaTime);
             if (recording)
             {
 

@@ -16,6 +16,9 @@ namespace FSflightPath
         public Rigidbody rbody;
         public Collider followerCollider;
         public GameObject parentObject;
+        //public bool goOffrailsAtEnd = true;
+        public FollowerObject followerObject;
+
         public void goOffRails(Vector3 angularVelocity)
         {
             playback = false;
@@ -88,6 +91,16 @@ namespace FSflightPath
                 }
                 progress = countDown / path.nextNode.time;
                 //Debug.Log("cur " + path.currentNodeNumber + " / " + progress);
+                if (!path.loops && path.currentNodeNumber > 0)
+                {
+                    if (path.currentNodeNumber >= path.lastNodeNumber)
+                    {
+                        if (path.goOffrailsAtEnd)
+                            goOffRails(Vector3.zero);
+                        else
+                            followerObject.Destroy();
+                    }
+                }
                 rbody.transform.position = Vector3.Lerp(path.nextNode.position + FlightGlobals.ActiveVessel.mainBody.position, path.currentNode.position + FlightGlobals.ActiveVessel.mainBody.position, progress);
                 rbody.transform.rotation = Quaternion.Lerp(path.nextNode.rotation, path.currentNode.rotation, progress);
             }

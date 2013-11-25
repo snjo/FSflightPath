@@ -14,6 +14,7 @@ namespace FSflightPath
         public FlightPathRecorder recorder = new FlightPathRecorder();
         //public List<FlightPathFollower> followers = new List<FlightPathFollower>();
         public List<FollowerObject> followerObjects = new List<FollowerObject>();
+        public FollowerObject workPathFollower;
         public int selectedPath = 0;
         public Rect windowRect = new Rect(100f, 10f, 200f, 180f);
         public Rect windowRectLoad = new Rect(100f, 200f, 200f, 180f);
@@ -33,7 +34,8 @@ namespace FSflightPath
         private float hideMenuHintCountDown = 0f;
         private Vector2 furthestElement = Vector2.zero;
         private string[] files;
-        private float loadMenuLastElementTop = 0f;        
+        private float loadMenuLastElementTop = 0f;
+        private List<FollowerObject> followerObjectsDeletion = new List<FollowerObject>();
 
         //public string meshName = "FSflightPath/Models/targetPlane";
         //public GameObject model;
@@ -44,7 +46,7 @@ namespace FSflightPath
             GameObject newObject = new GameObject();
             FollowerObject newFO = new FollowerObject();
             newFO.gameObject = newObject;
-            followerObjects.Add(newFO);            
+            //followerObjects.Add(newFO); handled in the gui load thing
             createModel(newFO, modelName, inPath);
             return newFO;
         }
@@ -57,7 +59,9 @@ namespace FSflightPath
                 Debug.Log("failed finding model" + modelName);
                 return;
             }            
-            newFollowerObject.follower.path = inPath;       
+            newFollowerObject.follower.path = inPath;
+            newFollowerObject.follower.followerObject = newFollowerObject;
+            newFollowerObject.destroyFunction = destroyFollower;
                  
             Rigidbody newRigidBody = newFollowerObject.gameObject.AddComponent<Rigidbody>();            
             newRigidBody.mass = 2.0f;
@@ -93,6 +97,12 @@ namespace FSflightPath
             }
         }
 
+        public void destroyFollower(FollowerObject target)
+        {
+            Debug.Log("Remove " + target.follower.path.pathName + " from list of " + followerObjects.Count);
+            followerObjectsDeletion.Add(target);            
+        }
+
         private void updateFurthestElement()
         {
             furthestElement.x = Mathf.Max(furthestElement.x, currentElementPos.x + buttonSize.x + margin.x);
@@ -103,7 +113,8 @@ namespace FSflightPath
         {
             pathHolder = new GameObject("pathHolder");
             //followers.Add(new FlightPathFollower());            
-            recorder.path = path;            
+            recorder.path = path;
+            //if (followerObjects.Count == 0) followerObjects.Add(createFollower(path, path.modelName, "new path"));            
         }
 
         private void openLoadMenu()
@@ -123,10 +134,12 @@ namespace FSflightPath
             if (GUI.Button(nextGUIpos, "Clear"))
             {                
                 recorder.clearPath();
-                followerObjects[selectedPath].follower.goOffRails(Vector3.zero);
+                if (workPathFollower != null)
+                    workPathFollower.follower.goOffRails(Vector3.zero);
             }
             if (GUI.Button(nextGUIpos, "Add node")) recorder.addCurrentNode();
             path.loops = GUI.Toggle(nextGUIpos, path.loops, "Loop path");
+            path.goOffrailsAtEnd = GUI.Toggle(new Rect(margin.x, nextGUIpos.y, buttonSize.x * 2, buttonSize.y), path.goOffrailsAtEnd, "Off Rails at end");
 
             newLine();
             path.pathName = GUI.TextField(nextGUIpos, path.pathName);
@@ -137,10 +150,11 @@ namespace FSflightPath
             newColumn();
             if (GUI.Button(nextGUIpos, "Play"))
             {
-                if (followerObjects[selectedPath] == null) followerObjects[selectedPath] = createFollower(path, path.modelName, "new path");
-                followerObjects[selectedPath].follower.startPlayback();
+                if (workPathFollower == null) workPathFollower = createFollower(path, path.modelName, "work path");
+                workPathFollower.follower.startPlayback();
             }
-            if (GUI.Button(nextGUIpos, "OffRails")) followerObjects[selectedPath].follower.goOffRails(Vector3.zero);
+            if (GUI.Button(nextGUIpos, "OffRails") && workPathFollower != null)
+                workPathFollower.follower.goOffRails(Vector3.zero);
             /*if (GUI.Button(nextGUIpos, "Create Model"))
             {
                 Debug.Log("Create Model pressed");
@@ -176,6 +190,7 @@ namespace FSflightPath
                     Debug.Log("added follower object, count: " + followerObjects.Count);
                     if (followerObjects.Count > 0)
                         followerObjects[followerObjects.Count - 1].follower.startPlayback();
+                    showLoadMenu = false;
                     //newFollower.startPlayback();
                     //path = PathImportExport.importPath(pathFile);
                 }
@@ -194,7 +209,7 @@ namespace FSflightPath
             {
                 if (recorder.recording) status = "REC";
                 else status = "Standby";
-                windowRect = GUI.Window(GUIlayer, new Rect(windowRect.x, windowRect.y, windowSize.x, windowSize.y + 2f), drawWindow, recorder.ID + " Path Recorder: " + status);
+                windowRect = GUI.Window(GUIlayer, new Rect(windowRect.x, windowRect.y, windowSize.x, windowSize.y + 2f), drawWindow, "Path Recorder: " + status);
             }
             if (showLoadMenu)
             {
@@ -208,12 +223,29 @@ namespace FSflightPath
 
         public void FixedUpdate()
         {
-            recorder.FixedUpdate();
+            recorder.FixedUpdate();            
             if (hideMenuHintCountDown > 0f) hideMenuHintCountDown -= Time.deltaTime;
+            if (workPathFollower != null)
+                workPathFollower.follower.FixedUpdate();
             foreach (FollowerObject fO in followerObjects)
             {
                 fO.follower.FixedUpdate();
             }
+            foreach (FollowerObject deleteObject in followerObjectsDeletion)
+            {
+                if (deleteObject != workPathFollower)
+                {
+                    Destroy(deleteObject.gameObject);
+                    followerObjects.Remove(deleteObject);
+                }
+                else
+                {
+                    workPathFollower.follower.goOffRails(Vector3.zero);
+                    Debug.Log("Can't delete work path follower");
+                }
+                Debug.Log("followerObjects now has " + followerObjects.Count);
+            }
+            followerObjectsDeletion.Clear();
         }
 
         public void Update()
@@ -221,12 +253,6 @@ namespace FSflightPath
             if (Input.GetKeyDown(KeyCode.F6) && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || Input.GetKey(KeyCode.RightShift)))
                 showMenu = !showMenu;
         }
-    }
-
-    public class FollowerObject
-    {
-        public GameObject gameObject; // gGameObject added fro db
-        public FlightPathFollower follower = new FlightPathFollower();
     }
 }
 

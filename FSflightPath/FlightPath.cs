@@ -21,6 +21,7 @@ namespace FSflightPath
         public float speedDeltaTolerance = 20f;
         public float velocityVectorDeltaTolerance = 10f;
         public float minTimeDelta = 0.7f;
+        public bool goOffrailsAtEnd = true;
         private string output = string.Empty;
 
         public FlightPathNode Next()
@@ -74,6 +75,17 @@ namespace FSflightPath
                     return nodes[nodes.Count - 1];
                 else
                     return currentNode;
+            }
+        }
+
+        public int lastNodeNumber
+        {
+            get
+            {
+                if (nodes.Count > 0)
+                    return nodes.Count - 1;
+                else
+                    return 0;
             }
         }
 
@@ -142,7 +154,7 @@ namespace FSflightPath
             output = pathName + "\n";
             addOutputLine(loops.ToString());
             addOutputLine(modelName);
-            addOutputLine("reserved line 1");
+            addOutputLine(goOffrailsAtEnd.ToString());
             addOutputLine("reserved line 2");
             addOutputLine("reserved line 3");
             addOutputLine("reserved line 4");
@@ -166,7 +178,7 @@ namespace FSflightPath
                 pathName = stream.ReadLine();
                 bool.TryParse(stream.ReadLine(), out loops);
                 modelName = stream.ReadLine();
-                stream.ReadLine(); // reserved line 1
+                bool.TryParse(stream.ReadLine(), out goOffrailsAtEnd); // reserved line 1
                 stream.ReadLine(); // reserved line 2
                 stream.ReadLine(); // reserved line 3
                 stream.ReadLine(); // reserved line 4
