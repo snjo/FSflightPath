@@ -7,49 +7,63 @@ using UnityEngine;
 
 namespace FSflightPath
 {
-    public class FlightPathFollower : MonoBehaviour
+    public class FlightPathFollower// : MonoBehaviour
     {
         public FlightPath path;
         public bool playback = false;
         public float countDown = 0f;
         public float progress = 0f;
         public Rigidbody rbody;
-        public Collider collider;
+        public Collider followerCollider;
+        public GameObject parentObject;
         public void goOffRails(Vector3 angularVelocity)
         {
             playback = false;
-            if (rigidbody == null) return;
-            rigidbody.isKinematic = false;            
+            if (rbody == null) return;
+            rbody.isKinematic = false;            
             if (path.nodes.Count > 0)
-                rigidbody.velocity = Vector3.Lerp(path.nextNode.velocity, path.currentNode.velocity, progress);
-            rigidbody.angularVelocity = angularVelocity;
+                rbody.velocity = Vector3.Lerp(path.nextNode.velocity, path.currentNode.velocity, progress);
+            rbody.angularVelocity = angularVelocity;
         }
 
         public void startPlayback()
         {
-            if (rigidbody == null) return;
-            if (path.nodes.Count <= 0) return;
-            rigidbody.isKinematic = true;
+            if (rbody == null)
+            {
+                Debug.Log("FPF sP: no rbody");
+                return;
+            }
+            if (path == null)
+            {
+                Debug.Log("FPF sP: no path");
+                return;
+            }
+            if (path.nodes.Count <= 0)
+            {
+                Debug.Log("No path nodes in path " + path.pathName);
+                return;
+            }            
+            rbody.isKinematic = true;            
             playback = true;
             path.currentNodeNumber = 0;
             countDown = path.nextNode.time;
-            transform.position = path.currentNode.position + FlightGlobals.ActiveVessel.mainBody.position;
-            transform.rotation = path.currentNode.rotation;
-            if (collider != null)
-            {
-                Debug.Log("found collider");
-                collider.isTrigger = false;
+            rbody.transform.position = path.currentNode.position + FlightGlobals.ActiveVessel.mainBody.position;
+            rbody.transform.rotation = path.currentNode.rotation;
+            if (followerCollider != null)
+            {                
+                followerCollider.isTrigger = false;
             }
         }
 
+        /*
         // Use this for initialization
-        void Start()
+        public void Start()
         {
-            rigidbody.isKinematic = true;
+            //rbody.isKinematic = true;
         }
 
         // Update is called once per frame
-        void Update()
+        public void Update()
         {
             if (Input.GetKeyDown(KeyCode.K))
             {
@@ -59,9 +73,9 @@ namespace FSflightPath
             {
                 goOffRails(Vector3.zero);
             }
-        }
+        }*/
 
-        void FixedUpdate()
+        public void FixedUpdate()
         {
             if (playback)
             {
@@ -74,8 +88,8 @@ namespace FSflightPath
                 }
                 progress = countDown / path.nextNode.time;
                 //Debug.Log("cur " + path.currentNodeNumber + " / " + progress);
-                transform.position = Vector3.Lerp(path.nextNode.position + FlightGlobals.ActiveVessel.mainBody.position, path.currentNode.position + FlightGlobals.ActiveVessel.mainBody.position, progress);
-                transform.rotation = Quaternion.Lerp(path.nextNode.rotation, path.currentNode.rotation, progress);
+                rbody.transform.position = Vector3.Lerp(path.nextNode.position + FlightGlobals.ActiveVessel.mainBody.position, path.currentNode.position + FlightGlobals.ActiveVessel.mainBody.position, progress);
+                rbody.transform.rotation = Quaternion.Lerp(path.nextNode.rotation, path.currentNode.rotation, progress);
             }
         }
     }

@@ -4,71 +4,81 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using System.IO;
 
 namespace FSflightPath
 {
     [KSPAddon(KSPAddon.Startup.Flight, false)]
     public class FligthPathGUI : MonoBehaviour
-    {
+    {        
         public FlightPathRecorder recorder = new FlightPathRecorder();
-        public FlightPathFollower follower = new FlightPathFollower();
+        //public List<FlightPathFollower> followers = new List<FlightPathFollower>();
+        public List<FollowerObject> followerObjects = new List<FollowerObject>();
+        public int selectedPath = 0;
         public Rect windowRect = new Rect(100f, 10f, 200f, 180f);
+        public Rect windowRectLoad = new Rect(100f, 200f, 200f, 180f);
         public Vector2 buttonSize = new Vector2(90f, 20f);
         public Vector2 margin = new Vector2(10f, 5f);
         public float topMargin = 20f;
         private int elementCount = 0;
         private Vector2 windowSize = Vector2.zero;
         private Vector2 currentElementPos = Vector2.zero;
-        public int GUIlayer = 2;
+        public int GUIlayer = StaticValues.flightPathWindowLayer;
+        public int GUIlayerLoad = StaticValues.loadWindowLayer;
         string status = "Standby";
         public GameObject pathHolder;
         public FlightPath path = new FlightPath();
         public bool showMenu = true;
+        private bool showLoadMenu = false;
         private float hideMenuHintCountDown = 0f;
+        private Vector2 furthestElement = Vector2.zero;
+        private string[] files;
+        private float loadMenuLastElementTop = 0f;        
 
-        public string meshName = "FSflightPath/models/targetPlane";
-        public GameObject model;
+        //public string meshName = "FSflightPath/Models/targetPlane";
+        //public GameObject model;
         //public int currentNodeNumber = 0;
 
-        public void createModel(string modelName)
+        public FollowerObject createFollower(FlightPath inPath, string modelName, string displayName)
         {
-            Debug.Log("Finding model");
-            model = GameDatabase.Instance.GetModel(meshName);
-            //model.transform.position = part.transform.position + new Vector3(0f, 2f, 2f);
-            Debug.Log("adding RB");
-            Rigidbody newRigidBody = model.AddComponent<Rigidbody>();
-            Debug.Log("RB values");
+            GameObject newObject = new GameObject();
+            FollowerObject newFO = new FollowerObject();
+            newFO.gameObject = newObject;
+            followerObjects.Add(newFO);            
+            createModel(newFO, modelName, inPath);
+            return newFO;
+        }
+
+        public void createModel(FollowerObject newFollowerObject, string modelName, FlightPath inPath) //FlightPathFollower follower,
+        {            
+            newFollowerObject.gameObject = GameDatabase.Instance.GetModel(modelName);
+            if (newFollowerObject.gameObject == null)
+            {
+                Debug.Log("failed finding model" + modelName);
+                return;
+            }            
+            newFollowerObject.follower.path = inPath;       
+                 
+            Rigidbody newRigidBody = newFollowerObject.gameObject.AddComponent<Rigidbody>();            
             newRigidBody.mass = 2.0f;
             newRigidBody.drag = 0.05f;
-            newRigidBody.isKinematic = true;            
-            
-            Debug.Log("set active");
-            model.SetActive(true);
-            Debug.Log("add follower");
-            follower = model.AddComponent<FlightPathFollower>();
-            Debug.Log("edit follower");
-            follower.path = path;
-            follower.rbody = newRigidBody;
-            Debug.Log("disable collider");
-            follower.collider = model.GetComponentInChildren<MeshCollider>();
-            //rbody = newRigidBody;
-            //newRigidBody.collisionDetectionMode = CollisionDetectionMode.Continuous;
-            //FSstaticMeshCollisionHandler colliderHandler = model.AddComponent<FSstaticMeshCollisionHandler>();
-            //colliderHandler.thisCollider = model.collider;
-            //model.AddComponent<physicalObject>();
-            //db.debugMessage("FS: mesh pos == " + model.transform.position);
-            //db.debugMessage("FS: part pos == " + part.transform.position);
+            newRigidBody.isKinematic = true;
+            newFollowerObject.follower.rbody = newRigidBody;            
+            newFollowerObject.gameObject.SetActive(true);                                    
+            newFollowerObject.follower.followerCollider = newFollowerObject.gameObject.GetComponentInChildren<MeshCollider>();            
         }
 
         private void newLine()
         {
             currentElementPos.y += buttonSize.y + margin.y;
             elementCount++;
+            updateFurthestElement();
         }
         private void newColumn()
         {
             currentElementPos = new Vector2(currentElementPos.x + buttonSize.x + margin.x, topMargin);
             elementCount = 0;
+            updateFurthestElement();
         }
         private Rect nextGUIpos
         {
@@ -78,14 +88,30 @@ namespace FSflightPath
                     currentElementPos.y += margin.y + buttonSize.y;
                 else
                     elementCount++;
+                updateFurthestElement();
                 return new Rect(currentElementPos.x, currentElementPos.y, buttonSize.x, buttonSize.y);
             }
+        }
+
+        private void updateFurthestElement()
+        {
+            furthestElement.x = Mathf.Max(furthestElement.x, currentElementPos.x + buttonSize.x + margin.x);
+            furthestElement.y = Mathf.Max(furthestElement.y, currentElementPos.y + buttonSize.y + margin.y);
         }
 
         public void Start()
         {
             pathHolder = new GameObject("pathHolder");
+            //followers.Add(new FlightPathFollower());            
             recorder.path = path;            
+        }
+
+        private void openLoadMenu()
+        {
+            showLoadMenu = true;
+            windowRectLoad = windowRect;
+            windowRectLoad.y += windowRect.height + 10f;
+            files = Directory.GetFiles(StaticValues.pathFolder, "*" + StaticValues.pathExtension);
         }
 
         private void drawWindow(int windowID)
@@ -97,26 +123,33 @@ namespace FSflightPath
             if (GUI.Button(nextGUIpos, "Clear"))
             {                
                 recorder.clearPath();
-                follower.goOffRails(Vector3.zero);
+                followerObjects[selectedPath].follower.goOffRails(Vector3.zero);
             }
             if (GUI.Button(nextGUIpos, "Add node")) recorder.addCurrentNode();
+            path.loops = GUI.Toggle(nextGUIpos, path.loops, "Loop path");
+
+            newLine();
+            path.pathName = GUI.TextField(nextGUIpos, path.pathName);
+            if (GUI.Button(nextGUIpos, "Save")) PathImportExport.exportPath(path);
+            if (GUI.Button(nextGUIpos, "Load")) openLoadMenu();
+
 
             newColumn();
             if (GUI.Button(nextGUIpos, "Play"))
             {
-                if (follower.rbody == null) createModel(meshName);
-                follower.startPlayback();                
+                if (followerObjects[selectedPath] == null) followerObjects[selectedPath] = createFollower(path, path.modelName, "new path");
+                followerObjects[selectedPath].follower.startPlayback();
             }
-            if (GUI.Button(nextGUIpos, "OffRails")) follower.goOffRails(Vector3.zero);
-            if (GUI.Button(nextGUIpos, "Create Model"))
+            if (GUI.Button(nextGUIpos, "OffRails")) followerObjects[selectedPath].follower.goOffRails(Vector3.zero);
+            /*if (GUI.Button(nextGUIpos, "Create Model"))
             {
                 Debug.Log("Create Model pressed");
-                if (follower.rbody == null)
-                    createModel(meshName);
-            }
+                if (followers[selectedPath].rbody == null)
+                    createModel(followers[selectedPath], meshName);
+            }*/
             GUI.Label(nextGUIpos, "Nodes: " + path.nodes.Count);
 
-            windowSize = currentElementPos + buttonSize + margin;            
+            windowSize = furthestElement;// + buttonSize + margin;
 
             if (GUI.Button(new Rect(windowRect.width - 18f, 2f, 16f, 16f), ""))
             {
@@ -124,7 +157,34 @@ namespace FSflightPath
                 hideMenuHintCountDown = 4f;
             }
 
+            updateFurthestElement();
 
+            GUI.DragWindow();
+        }
+
+        private void drawLoadWindow(int windowID)
+        {
+            loadMenuLastElementTop = topMargin;
+            foreach (string pathFile in files)
+            {
+                string[] pathName = pathFile.Split('/');
+                if (GUI.Button(new Rect(margin.x, loadMenuLastElementTop, buttonSize.x * 2 + margin.x, buttonSize.y), pathName[pathName.Length-1]))
+                {
+                    FlightPath newPath = PathImportExport.importPath(pathFile);
+                    Debug.Log("imported path from text file");
+                    followerObjects.Add(createFollower(newPath, newPath.modelName, newPath.pathName));
+                    Debug.Log("added follower object, count: " + followerObjects.Count);
+                    if (followerObjects.Count > 0)
+                        followerObjects[followerObjects.Count - 1].follower.startPlayback();
+                    //newFollower.startPlayback();
+                    //path = PathImportExport.importPath(pathFile);
+                }
+                loadMenuLastElementTop += buttonSize.y + margin.y;
+            }
+
+            if (GUI.Button(new Rect(margin.x, loadMenuLastElementTop + buttonSize.y, buttonSize.x, buttonSize.y), "Cancel"))
+                showLoadMenu = false;
+            windowRectLoad.height = loadMenuLastElementTop + buttonSize.y * 2 + margin.y;
             GUI.DragWindow();
         }
 
@@ -136,9 +196,13 @@ namespace FSflightPath
                 else status = "Standby";
                 windowRect = GUI.Window(GUIlayer, new Rect(windowRect.x, windowRect.y, windowSize.x, windowSize.y + 2f), drawWindow, recorder.ID + " Path Recorder: " + status);
             }
+            if (showLoadMenu)
+            {
+                windowRectLoad = GUI.Window(GUIlayerLoad, windowRectLoad, drawLoadWindow, "Load Path");
+            }
             else if (hideMenuHintCountDown > 0f)
             {
-                GUI.Label(new Rect(windowRect.x, windowRect.y, buttonSize.x*3, buttonSize.y*2), "Press F12 to enable path menu");
+                GUI.Label(new Rect(windowRect.x, windowRect.y, buttonSize.x * 3, buttonSize.y * 2), "Press Alt+F6 to enable path menu");
             }
         }
 
@@ -146,12 +210,24 @@ namespace FSflightPath
         {
             recorder.FixedUpdate();
             if (hideMenuHintCountDown > 0f) hideMenuHintCountDown -= Time.deltaTime;
+            foreach (FollowerObject fO in followerObjects)
+            {
+                fO.follower.FixedUpdate();
+            }
         }
 
         public void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F12) && !(Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)))
+            if (Input.GetKeyDown(KeyCode.F6) && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || Input.GetKey(KeyCode.RightShift)))
                 showMenu = !showMenu;
         }
     }
+
+    public class FollowerObject
+    {
+        public GameObject gameObject; // gGameObject added fro db
+        public FlightPathFollower follower = new FlightPathFollower();
+    }
 }
+
+
