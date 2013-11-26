@@ -122,19 +122,6 @@ namespace FSflightPath
                 //Debug.Log("nodes: " + path.nodes.Count + " / newNode " + path.lastNode.position);
             }
 
-        }
-
-        void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.O))
-            {
-                startRecording();
-            }
-            if (Input.GetKeyDown(KeyCode.P))
-            {
-                stopRecording();
-            }
-        }
-        
+        }       
     }
 }

@@ -58,26 +58,6 @@ namespace FSflightPath
             }
         }
 
-        /*
-        // Use this for initialization
-        public void Start()
-        {
-            //rbody.isKinematic = true;
-        }
-
-        // Update is called once per frame
-        public void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.K))
-            {
-                startPlayback();
-            }
-            if (Input.GetKeyDown(KeyCode.L))
-            {
-                goOffRails(Vector3.zero);
-            }
-        }*/
-
         public void FixedUpdate()
         {
             if (playback)

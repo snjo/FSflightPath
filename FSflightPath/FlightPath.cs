@@ -12,6 +12,7 @@ namespace FSflightPath
     {
         public string pathName = "unnamed path"; //string.Empty;        
         public string modelName = "FSflightPath/Models/targetPlane";
+        public bool loadCraft = false;
         public List<FlightPathNode> nodes = new List<FlightPathNode>();
         public bool loops = false;
         public int currentNodeNumber = 0;
@@ -126,8 +127,7 @@ namespace FSflightPath
             else
             {
                 Debug.Log("Couldn't parse " + inString + " to Vector3");
-            }
-            Debug.Log("parseVector3 end");
+            }            
             return result;
         }
 
@@ -155,7 +155,7 @@ namespace FSflightPath
             addOutputLine(loops.ToString());
             addOutputLine(modelName);
             addOutputLine(goOffrailsAtEnd.ToString());
-            addOutputLine("reserved line 2");
+            addOutputLine(loadCraft.ToString());
             addOutputLine("reserved line 3");
             addOutputLine("reserved line 4");
             addOutputLine("reserved line 5");
@@ -178,8 +178,8 @@ namespace FSflightPath
                 pathName = stream.ReadLine();
                 bool.TryParse(stream.ReadLine(), out loops);
                 modelName = stream.ReadLine();
-                bool.TryParse(stream.ReadLine(), out goOffrailsAtEnd); // reserved line 1
-                stream.ReadLine(); // reserved line 2
+                bool.TryParse(stream.ReadLine(), out goOffrailsAtEnd);
+                bool.TryParse(stream.ReadLine(), out loadCraft);
                 stream.ReadLine(); // reserved line 3
                 stream.ReadLine(); // reserved line 4
                 stream.ReadLine(); // reserved line 5

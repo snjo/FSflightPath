@@ -36,39 +36,49 @@ namespace FSflightPath
         private string[] files;
         private float loadMenuLastElementTop = 0f;
         private List<FollowerObject> followerObjectsDeletion = new List<FollowerObject>();
+        private bool hotkeysEnabled = true;
 
         //public string meshName = "FSflightPath/Models/targetPlane";
         //public GameObject model;
         //public int currentNodeNumber = 0;
 
-        public FollowerObject createFollower(FlightPath inPath, string modelName, string displayName)
+        public FollowerObject createFollower(FlightPath inPath, string modelName, string displayName, bool loadCraft)
         {
             GameObject newObject = new GameObject();
-            FollowerObject newFO = new FollowerObject();
-            newFO.gameObject = newObject;
+            FollowerObject newFollowerObject = new FollowerObject();
+            newFollowerObject.gameObject = newObject;
             //followerObjects.Add(newFO); handled in the gui load thing
-            createModel(newFO, modelName, inPath);
-            return newFO;
+            createModel(newFollowerObject, modelName, inPath, loadCraft);
+            newFollowerObject.follower.path = inPath;
+            newFollowerObject.destroyFunction = destroyFollower;
+            return newFollowerObject;
         }
 
-        public void createModel(FollowerObject newFollowerObject, string modelName, FlightPath inPath) //FlightPathFollower follower,
-        {            
-            newFollowerObject.gameObject = GameDatabase.Instance.GetModel(modelName);
+        public void createModel(FollowerObject newFollowerObject, string modelName, FlightPath inPath, bool loadCraft) //FlightPathFollower follower,
+        {
+            if (loadCraft)
+            {
+                //newFollowerObject.gameObject = CraftLoader.findPartModel(modelName).model;
+                newFollowerObject.gameObject = CraftLoader.assembleCraft("test");
+            }
+            else
+            {
+                newFollowerObject.gameObject = GameDatabase.Instance.GetModel(modelName);
+            }
             if (newFollowerObject.gameObject == null)
             {
                 Debug.Log("failed finding model" + modelName);
                 return;
             }            
-            newFollowerObject.follower.path = inPath;
-            newFollowerObject.follower.followerObject = newFollowerObject;
-            newFollowerObject.destroyFunction = destroyFollower;
+            
+            newFollowerObject.follower.followerObject = newFollowerObject;            
                  
             Rigidbody newRigidBody = newFollowerObject.gameObject.AddComponent<Rigidbody>();            
             newRigidBody.mass = 2.0f;
             newRigidBody.drag = 0.05f;
             newRigidBody.isKinematic = true;
-            newFollowerObject.follower.rbody = newRigidBody;            
-            newFollowerObject.gameObject.SetActive(true);                                    
+            newFollowerObject.follower.rbody = newRigidBody;           
+            newFollowerObject.gameObject.SetActive(true);
             newFollowerObject.follower.followerCollider = newFollowerObject.gameObject.GetComponentInChildren<MeshCollider>();            
         }
 
@@ -150,11 +160,12 @@ namespace FSflightPath
             newColumn();
             if (GUI.Button(nextGUIpos, "Play"))
             {
-                if (workPathFollower == null) workPathFollower = createFollower(path, path.modelName, "work path");
-                workPathFollower.follower.startPlayback();
+                workPathPlayback();
             }
-            if (GUI.Button(nextGUIpos, "OffRails") && workPathFollower != null)
-                workPathFollower.follower.goOffRails(Vector3.zero);
+            if (GUI.Button(nextGUIpos, "OffRails"))
+            {
+                workPathGoOffRails();
+            }
             /*if (GUI.Button(nextGUIpos, "Create Model"))
             {
                 Debug.Log("Create Model pressed");
@@ -176,6 +187,18 @@ namespace FSflightPath
             GUI.DragWindow();
         }
 
+        private void workPathGoOffRails()
+        {
+            if (workPathFollower != null)
+                workPathFollower.follower.goOffRails(Vector3.zero);
+        }
+
+        private void workPathPlayback()
+        {
+            if (workPathFollower == null) workPathFollower = createFollower(path, path.modelName, "work path", false);
+            workPathFollower.follower.startPlayback();
+        }
+
         private void drawLoadWindow(int windowID)
         {
             loadMenuLastElementTop = topMargin;
@@ -186,7 +209,7 @@ namespace FSflightPath
                 {
                     FlightPath newPath = PathImportExport.importPath(pathFile);
                     Debug.Log("imported path from text file");
-                    followerObjects.Add(createFollower(newPath, newPath.modelName, newPath.pathName));
+                    followerObjects.Add(createFollower(newPath, newPath.modelName, newPath.pathName, newPath.loadCraft));
                     Debug.Log("added follower object, count: " + followerObjects.Count);
                     if (followerObjects.Count > 0)
                         followerObjects[followerObjects.Count - 1].follower.startPlayback();
@@ -252,6 +275,30 @@ namespace FSflightPath
         {
             if (Input.GetKeyDown(KeyCode.F6) && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt) || Input.GetKey(KeyCode.RightShift)))
                 showMenu = !showMenu;
+            if (hotkeysEnabled)
+            {
+                if (Input.GetKeyDown(KeyCode.O))
+                {
+                   recorder.startRecording();
+                }
+                if (Input.GetKeyDown(KeyCode.P))
+                {
+                    recorder.stopRecording();
+                }
+                if (Input.GetKeyDown(KeyCode.K))
+                {
+                    workPathPlayback();
+                }
+                if (Input.GetKeyDown(KeyCode.L))
+                {
+                    workPathGoOffRails();
+                }
+                if (Input.GetKeyDown(KeyCode.F7))
+                {
+                    CraftLoader.assembleCraft("Merlin");
+                }
+
+            }
         }
     }
 }
