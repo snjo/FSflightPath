@@ -23,16 +23,16 @@ namespace FSflightPath
                 {
                     Debug.Log("vessel parts: " + vessel.parts.Count);
                     rootPosition = vessel.parts[0].transform.position;
-                    rootRotation = vessel.parts[0].transform.rotation; 
+                    rootRotation = vessel.parts[0].transform.rotation;
                     Quaternion worldUp = Quaternion.Euler((vessel.rigidbody.position - vessel.mainBody.position).normalized);
                     referenceFrame.rotation = vessel.transform.rotation;
                     foreach (Part part in vessel.parts)
                     {
                         PartValue newPartValue = new PartValue();
-                        newPartValue.position = part.transform.position - rootPosition;                        
-                        newPartValue.scale = part.scaleFactor;                        
+                        newPartValue.position = part.transform.position - rootPosition;
+                        //newPartValue.scale = part.scaleFactor;
                         localTransform.rotation = part.transform.rotation;
-                        newPartValue.rotation = part.transform.localRotation;
+                        newPartValue.rotation = localTransform.localRotation;
                         newPartValue.partName = part.name.Split(' ')[0];
                         newPartValue.model = findPartModel(newPartValue.partName).model;
                         partList.Add(newPartValue);
