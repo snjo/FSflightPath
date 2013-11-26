@@ -253,6 +253,7 @@ namespace FSflightPath
             foreach (FollowerObject fO in followerObjects)
             {
                 fO.follower.FixedUpdate();
+                Debug.Log("active: " + fO.gameObject.activeSelf + " / " + fO.gameObject.activeInHierarchy);
             }
             foreach (FollowerObject deleteObject in followerObjectsDeletion)
             {

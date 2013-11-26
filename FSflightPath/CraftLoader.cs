@@ -25,13 +25,15 @@ namespace FSflightPath
                     rootPosition = vessel.parts[0].transform.position;
                     rootRotation = vessel.parts[0].transform.rotation;
                     Quaternion worldUp = Quaternion.Euler((vessel.rigidbody.position - vessel.mainBody.position).normalized);
+                    referenceFrame.position = vessel.transform.position;
                     referenceFrame.rotation = vessel.transform.rotation;
                     foreach (Part part in vessel.parts)
                     {
                         PartValue newPartValue = new PartValue();
-                        newPartValue.position = part.transform.position - rootPosition;
-                        //newPartValue.scale = part.scaleFactor;
+                        newPartValue.scale = 1f / part.scaleFactor;
                         localTransform.rotation = part.transform.rotation;
+                        localTransform.position = part.transform.position;
+                        newPartValue.position = localTransform.localPosition;
                         newPartValue.rotation = localTransform.localRotation;
                         newPartValue.partName = part.name.Split(' ')[0];
                         newPartValue.model = findPartModel(newPartValue.partName).model;
@@ -48,13 +50,13 @@ namespace FSflightPath
             GameObject craft = new GameObject();
             List<PartValue> pvList = getParts(FlightGlobals.ActiveVessel);
             foreach (PartValue pv in pvList)
-            {
-                Debug.Log("Part: " + pv.partName);
+            {                
                 pv.model.SetActive(true);
                 pv.model.transform.parent = craft.transform;
                 pv.model.transform.localPosition = pv.position;
-                pv.model.transform.localRotation = pv.rotation;
-                //pv.model.transform.localScale = new Vector3(pv.scale, pv.scale, pv.scale);
+                pv.model.transform.localRotation = pv.rotation;                
+                pv.model.transform.localScale = new Vector3(pv.scale, pv.scale, pv.scale);
+                Debug.Log("Part: " + pv.partName + "Scale: " + pv.scale + "/" + pv.model.transform.localScale);
                 //Debug.Log("Part: " + pv.position);
                 //Debug.Log("Part: " + pv.rotation);
                 //Debug.Log("Part: " + pv.scale);

@@ -9,7 +9,7 @@ namespace FSflightPath
 {
     public class FollowerObject
     {
-        public GameObject gameObject; // gGameObject added fro db
+        public GameObject gameObject; // gGameObject added from db
         public FlightPathFollower follower = new FlightPathFollower();
         public delegate void fOdelegate(FollowerObject fO);
         public fOdelegate destroyFunction;
