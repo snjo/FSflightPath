@@ -54,7 +54,8 @@ namespace FSflightPath
                 pv.model.SetActive(true);
                 pv.model.transform.parent = craft.transform;
                 pv.model.transform.localPosition = pv.position;
-                pv.model.transform.localRotation = pv.rotation;                
+                pv.model.transform.localRotation = pv.rotation;
+                if (pv.scale > 10f) pv.scale /= 100f;
                 pv.model.transform.localScale = new Vector3(pv.scale, pv.scale, pv.scale);
                 Debug.Log("Part: " + pv.partName + "Scale: " + pv.scale + "/" + pv.model.transform.localScale);
                 //Debug.Log("Part: " + pv.position);

@@ -54,7 +54,7 @@ namespace FSflightPath
             rbody.transform.rotation = path.currentNode.rotation;
             if (followerCollider != null)
             {                
-                followerCollider.isTrigger = false;
+                //followerCollider.isTrigger = false;
             }
         }
 

@@ -79,7 +79,12 @@ namespace FSflightPath
             newRigidBody.isKinematic = true;
             newFollowerObject.follower.rbody = newRigidBody;           
             newFollowerObject.gameObject.SetActive(true);
-            newFollowerObject.follower.followerCollider = newFollowerObject.gameObject.GetComponentInChildren<MeshCollider>();            
+            //newFollowerObject.follower.followerCollider = newFollowerObject.gameObject.GetComponentInChildren<MeshCollider>();            
+            MeshCollider[] colliders = newFollowerObject.gameObject.GetComponentsInChildren<MeshCollider>();
+            foreach (MeshCollider col in colliders)
+            {
+                Destroy(col);
+            }
         }
 
         private void newLine()
@@ -253,7 +258,7 @@ namespace FSflightPath
             foreach (FollowerObject fO in followerObjects)
             {
                 fO.follower.FixedUpdate();
-                Debug.Log("active: " + fO.gameObject.activeSelf + " / " + fO.gameObject.activeInHierarchy);
+                //Debug.Log("active: " + fO.gameObject.activeSelf + " / " + fO.gameObject.activeInHierarchy);
             }
             foreach (FollowerObject deleteObject in followerObjectsDeletion)
             {
