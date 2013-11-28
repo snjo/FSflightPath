@@ -57,7 +57,7 @@
     <Compile Include="FollowerObject.cs" />
     <Compile Include="PathImportExport.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StaticValues.cs" />
+    <Compile Include="Utilities.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

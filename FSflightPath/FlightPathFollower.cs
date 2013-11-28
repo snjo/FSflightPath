@@ -21,6 +21,8 @@ namespace FSflightPath
 
         public void goOffRails(Vector3 angularVelocity)
         {
+            if (rbody == null)
+                setupRigidBody();
             playback = false;
             if (rbody == null) return;
             rbody.isKinematic = false;            
@@ -29,13 +31,21 @@ namespace FSflightPath
             rbody.angularVelocity = angularVelocity;
         }
 
+        public void setupRigidBody()
+        {
+            rbody = parentObject.AddComponent<Rigidbody>();
+            rbody.mass = 2.0f;
+            rbody.drag = 0.05f;
+            rbody.isKinematic = false;
+        }
+
         public void startPlayback()
         {
-            if (rbody == null)
-            {
-                Debug.Log("FPF sP: no rbody");
-                return;
-            }
+            //if (rbody == null)
+            //{
+            //    Debug.Log("FPF sP: no rbody");
+            //    return;
+            //}
             if (path == null)
             {
                 Debug.Log("FPF sP: no path");
@@ -46,12 +56,12 @@ namespace FSflightPath
                 Debug.Log("No path nodes in path " + path.pathName);
                 return;
             }            
-            rbody.isKinematic = true;            
+            //rbody.isKinematic = true;            
             playback = true;
             path.currentNodeNumber = 0;
             countDown = path.nextNode.time;
-            rbody.transform.position = path.currentNode.position + FlightGlobals.ActiveVessel.mainBody.position;
-            rbody.transform.rotation = path.currentNode.rotation;
+            parentObject.transform.position = path.currentNode.position + FlightGlobals.ActiveVessel.mainBody.position;
+            parentObject.transform.rotation = path.currentNode.rotation;
             if (followerCollider != null)
             {                
                 //followerCollider.isTrigger = false;
@@ -81,8 +91,8 @@ namespace FSflightPath
                             followerObject.Destroy();
                     }
                 }
-                rbody.transform.position = Vector3.Lerp(path.nextNode.position + FlightGlobals.ActiveVessel.mainBody.position, path.currentNode.position + FlightGlobals.ActiveVessel.mainBody.position, progress);
-                rbody.transform.rotation = Quaternion.Lerp(path.nextNode.rotation, path.currentNode.rotation, progress);
+                parentObject.transform.position = Vector3.Lerp(path.nextNode.position + FlightGlobals.ActiveVessel.mainBody.position, path.currentNode.position + FlightGlobals.ActiveVessel.mainBody.position, progress);
+                parentObject.transform.rotation = Quaternion.Lerp(path.nextNode.rotation, path.currentNode.rotation, progress);
             }
         }
     }

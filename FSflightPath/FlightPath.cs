@@ -11,8 +11,8 @@ namespace FSflightPath
     public class FlightPath
     {
         public string pathName = "unnamed path"; //string.Empty;        
-        public string modelName = "FSflightPath/Models/targetPlane";
-        public bool loadCraft = false;
+        public string modelName = string.Empty;
+        public bool loadCraft = true;
         public List<FlightPathNode> nodes = new List<FlightPathNode>();
         public bool loops = false;
         public int currentNodeNumber = 0;
@@ -153,7 +153,8 @@ namespace FSflightPath
         {
             output = pathName + "\n";
             addOutputLine(loops.ToString());
-            addOutputLine(modelName);
+            //addOutputLine(modelName);
+            addOutputLine(FlightGlobals.ActiveVessel.vesselName);
             addOutputLine(goOffrailsAtEnd.ToString());
             addOutputLine(loadCraft.ToString());
             addOutputLine("reserved line 3");

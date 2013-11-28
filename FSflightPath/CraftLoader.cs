@@ -2,14 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+//using System.Threading.Tasks;
 using UnityEngine;
+using System.IO;
 
 namespace FSflightPath
 {
     public static class CraftLoader
     {
-        public static List<PartValue> getParts(Vessel vessel)
+        public static List<PartValue> getParts(Vessel vessel, bool fetchModel)
         {
             List<PartValue> partList = new List<PartValue>();
             Vector3 rootPosition;
@@ -21,7 +22,7 @@ namespace FSflightPath
             {
                 if (vessel.parts.Count > 0)
                 {
-                    Debug.Log("vessel parts: " + vessel.parts.Count);
+                    //Debug.Log("vessel parts: " + vessel.parts.Count);
                     rootPosition = vessel.parts[0].transform.position;
                     rootRotation = vessel.parts[0].transform.rotation;
                     Quaternion worldUp = Quaternion.Euler((vessel.rigidbody.position - vessel.mainBody.position).normalized);
@@ -36,28 +37,94 @@ namespace FSflightPath
                         newPartValue.position = localTransform.localPosition;
                         newPartValue.rotation = localTransform.localRotation;
                         newPartValue.partName = part.name.Split(' ')[0];
-                        newPartValue.model = findPartModel(newPartValue.partName).model;
+                        if (fetchModel) newPartValue.model = findPartModel(newPartValue.partName);
                         partList.Add(newPartValue);
                     }
-                    Debug.Log("partList count: " + partList.Count);
+                    //Debug.Log("partList count: " + partList.Count);
                 }
             }
             return partList;
+        }        
+
+        private static string serialize()
+        {
+            StringBuilder output = new StringBuilder();
+            output.AppendLine(Utilities.craftFileFormat.ToString());
+            foreach (PartValue value in getParts(FlightGlobals.ActiveVessel, false))
+            {
+                output.AppendLine(value.partName);
+                output.AppendLine(Utilities.Vector3ToString(value.position));
+                output.AppendLine(Utilities.QuaternionToString(value.rotation));
+                output.AppendLine(value.scale.ToString());
+            }
+            output.Append("[EOF]");
+            return output.ToString();
+        }        
+
+        public static void saveCraftToFile()
+        {
+            StreamWriter stream = new StreamWriter(Utilities.CraftPath + FlightGlobals.ActiveVessel.vesselName + ".crf");
+            stream.WriteLine(serialize());
+            stream.Close(); 
         }
 
-        public static GameObject assembleCraft(string craftName)
+        public static List<PartValue> loadCraftFromFile(string fileName)
+        {
+            List<PartValue> loadedList = new List<PartValue>();
+            PartValue newValue = new PartValue();
+            StreamReader stream = new StreamReader(fileName); // exceptions handled by assembleCraft
+            string newLine = string.Empty;
+            int craftFileFormat = 0;
+            int.TryParse(stream.ReadLine(), out craftFileFormat);
+            Debug.Log(String.Concat("Loading crf file, format ", craftFileFormat, ", ", fileName));
+            try
+            {
+                while (!stream.EndOfStream && !(newLine == "[EOF]"))
+                {
+                    newLine = stream.ReadLine();
+                    newValue.partName = newLine;                    
+                    newValue.position = Utilities.parseVector3(stream.ReadLine());
+                    newValue.rotation = Utilities.parseQuaternion(stream.ReadLine());
+                    float.TryParse(stream.ReadLine(), out newValue.scale);
+                    //Debug.Log("finding model " + newValue.partName);
+                    newValue.model = findPartModel(newValue.partName);
+                    //Debug.Log("model null? " + (newValue.model == null));
+                    loadedList.Add(newValue.clone());
+                }                
+            }
+            catch (Exception e)
+            {
+                Debug.Log("load craft file error: " + e.ToString());
+            }
+            return loadedList;
+        }
+
+        public static GameObject assembleCraft(string craftName) // --- craftName not actually used yet. This should take a saved craft file name as input ---
         {
             GameObject craft = new GameObject();
-            List<PartValue> pvList = getParts(FlightGlobals.ActiveVessel);
+            Debug.Log("asembling craft " + craftName);
+            List<PartValue> pvList;
+            //List<PartValue> pvList = getParts(FlightGlobals.ActiveVessel, true); // load the craft file here into a partValue list
+            try
+            {
+                pvList = loadCraftFromFile(craftName);
+            }
+            catch
+            {
+                throw new FileNotFoundException("error loading craft from file", craftName);
+            }
             foreach (PartValue pv in pvList)
-            {                
+            {
+                //Debug.Log("pv.name is " + pv.partName);
                 pv.model.SetActive(true);
+                //Debug.Log("pv.model exists");
                 pv.model.transform.parent = craft.transform;
                 pv.model.transform.localPosition = pv.position;
                 pv.model.transform.localRotation = pv.rotation;
-                if (pv.scale > 10f) pv.scale /= 100f;
+                if (pv.scale > 7f) pv.scale /= 10f;
+                if (pv.scale > 7f) pv.scale /= 10f; // twice to catch both 0.01 scale parts, and 0.1 scales. Gotta find a better way. Need to read the part cfg scale
                 pv.model.transform.localScale = new Vector3(pv.scale, pv.scale, pv.scale);
-                Debug.Log("Part: " + pv.partName + "Scale: " + pv.scale + "/" + pv.model.transform.localScale);
+                //Debug.Log("Part: " + pv.partName + "Scale: " + pv.scale + "/" + pv.model.transform.localScale);
                 //Debug.Log("Part: " + pv.position);
                 //Debug.Log("Part: " + pv.rotation);
                 //Debug.Log("Part: " + pv.scale);
@@ -65,7 +132,7 @@ namespace FSflightPath
             return craft;
         }
 
-        public static PartValue findPartModel(string partName)
+        public static GameObject findPartModel(string partName)
         {
             UrlDir.UrlConfig[] cfg = GameDatabase.Instance.GetConfigs("PART");
             //Debug.Log("looping through " + cfg.Length);
@@ -74,8 +141,8 @@ namespace FSflightPath
                 if (partName == cfg[i].name)
                 {
                     //Debug.Log("found this part: " + cfg[i].url);
-                    float scale = 0.1337f;
-                    float.TryParse(cfg[i].config.GetValue("scale"), out scale);
+                    //float scale = 0.1337f;
+                    //float.TryParse(cfg[i].config.GetValue("scale"), out scale);
                     //Debug.Log("scale: " + scale);
                     string modelPath = cfg[i].parent.parent.url + "/" + "model";
                     //Debug.Log("model path: " + modelPath);
@@ -84,19 +151,20 @@ namespace FSflightPath
                     {
                         //Debug.Log("model load error, fetching first model available");
                         newModel = GameDatabase.Instance.GetModelIn(cfg[i].parent.parent.url);
-                        return new PartValue(newModel, scale);
+                        return newModel;
+                        //return new PartValue(newModel, scale);
                     }
                     else
                     {
                         //Debug.Log("newModel not null");
-                        return new PartValue(newModel, scale);
+                        return newModel;
                     }
                 }
             }
             Debug.Log("Finding model " + partName + " failed, returning blank GameObject");
-            return new PartValue(new GameObject(), 1f);
+            return new GameObject();
         }
-    }
+    }  
 
     public class PartValue
     {
@@ -104,7 +172,7 @@ namespace FSflightPath
         public GameObject model;
         public Vector3 position;
         public Quaternion rotation;
-        public Quaternion attachRotation;
+        //public Quaternion attachRotation;
         public float scale;
 
         public PartValue(GameObject _model, float _scale)
@@ -115,6 +183,17 @@ namespace FSflightPath
 
         public PartValue()
         {
+        }
+
+        public PartValue clone()
+        {
+            PartValue cloneValue = new PartValue();
+            cloneValue.partName = partName;
+            cloneValue.position = position;
+            cloneValue.rotation = rotation;
+            cloneValue.scale = scale;
+            cloneValue.model = model;
+            return cloneValue;
         }
     }
 }

@@ -24,8 +24,8 @@ namespace FSflightPath
         private int elementCount = 0;
         private Vector2 windowSize = Vector2.zero;
         private Vector2 currentElementPos = Vector2.zero;
-        public int GUIlayer = StaticValues.flightPathWindowLayer;
-        public int GUIlayerLoad = StaticValues.loadWindowLayer;
+        public int GUIlayer = Utilities.flightPathWindowLayer;
+        public int GUIlayerLoad = Utilities.loadWindowLayer;
         string status = "Standby";
         public GameObject pathHolder;
         public FlightPath path = new FlightPath();
@@ -49,6 +49,7 @@ namespace FSflightPath
             newFollowerObject.gameObject = newObject;
             //followerObjects.Add(newFO); handled in the gui load thing
             createModel(newFollowerObject, modelName, inPath, loadCraft);
+            newFollowerObject.follower.parentObject = newFollowerObject.gameObject;
             newFollowerObject.follower.path = inPath;
             newFollowerObject.destroyFunction = destroyFollower;
             return newFollowerObject;
@@ -59,7 +60,7 @@ namespace FSflightPath
             if (loadCraft)
             {
                 //newFollowerObject.gameObject = CraftLoader.findPartModel(modelName).model;
-                newFollowerObject.gameObject = CraftLoader.assembleCraft("test");
+                newFollowerObject.gameObject = CraftLoader.assembleCraft(Utilities.CraftPath + modelName + Utilities.craftExtension);
             }
             else
             {
@@ -67,17 +68,23 @@ namespace FSflightPath
             }
             if (newFollowerObject.gameObject == null)
             {
-                Debug.Log("failed finding model" + modelName);
-                return;
+                Debug.Log("failed finding model " + modelName + ", loading fallback");
+                newFollowerObject.gameObject = GameDatabase.Instance.GetModel(Utilities.fallbackModelName);
+                if (newFollowerObject.gameObject == null)
+                {
+                    Debug.Log("failed finding fallback modelm using blank GameObject");
+                    newFollowerObject.gameObject = new GameObject();
+                }
+                //return;
             }            
             
             newFollowerObject.follower.followerObject = newFollowerObject;            
                  
-            Rigidbody newRigidBody = newFollowerObject.gameObject.AddComponent<Rigidbody>();            
-            newRigidBody.mass = 2.0f;
-            newRigidBody.drag = 0.05f;
-            newRigidBody.isKinematic = true;
-            newFollowerObject.follower.rbody = newRigidBody;           
+            //Rigidbody newRigidBody = newFollowerObject.gameObject.AddComponent<Rigidbody>();            
+            //newRigidBody.mass = 2.0f;
+            //newRigidBody.drag = 0.05f;
+            //newRigidBody.isKinematic = true;
+            //newFollowerObject.follower.rbody = newRigidBody;           
             newFollowerObject.gameObject.SetActive(true);
             //newFollowerObject.follower.followerCollider = newFollowerObject.gameObject.GetComponentInChildren<MeshCollider>();            
             MeshCollider[] colliders = newFollowerObject.gameObject.GetComponentsInChildren<MeshCollider>();
@@ -137,7 +144,7 @@ namespace FSflightPath
             showLoadMenu = true;
             windowRectLoad = windowRect;
             windowRectLoad.y += windowRect.height + 10f;
-            files = Directory.GetFiles(StaticValues.pathFolder, "*" + StaticValues.pathExtension);
+            files = Directory.GetFiles(Utilities.pathFolder, "*" + Utilities.pathExtension);
         }
 
         private void drawWindow(int windowID)
@@ -298,12 +305,7 @@ namespace FSflightPath
                 if (Input.GetKeyDown(KeyCode.L))
                 {
                     workPathGoOffRails();
-                }
-                if (Input.GetKeyDown(KeyCode.F7))
-                {
-                    CraftLoader.assembleCraft("Merlin");
-                }
-
+                }                
             }
         }
     }

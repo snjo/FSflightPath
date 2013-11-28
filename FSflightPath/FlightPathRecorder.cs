@@ -66,6 +66,8 @@ namespace FSflightPath
             Debug.Log("Starting recording");
             rbody = FlightGlobals.ActiveVessel.rigidbody;
             recording = true;
+            Debug.Log("Saving craft");
+            CraftLoader.saveCraftToFile();
         }
 
         public void stopRecording()

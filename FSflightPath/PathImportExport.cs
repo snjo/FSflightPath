@@ -11,9 +11,9 @@ namespace FSflightPath
     public static class PathImportExport
     {
         public static void exportPath(FlightPath path)
-        {
-            Debug.Log("FSflightPath: Saving path " + path.pathName);            
-            StreamWriter writer = new StreamWriter(StaticValues.pathFolder + path.pathName + StaticValues.pathExtension);            
+        {            
+            Debug.Log("FSflightPath: Saving path " + path.pathName);
+            StreamWriter writer = new StreamWriter(Utilities.pathFolder + path.pathName + Utilities.pathExtension);            
             writer.WriteLine(path.serialize());
             writer.Close();            
         }
